@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "carlos-martins-dev.text-fixer",
+  "name": "Text Fixer",
+  "version": "1.0.0",
+  "author": "Carlos Martins",
+  "description": "Text box that fixes your text and pastes it into the focused window",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "TextFixer.qml"
+  }
+}

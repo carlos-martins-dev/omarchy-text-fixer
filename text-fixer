@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -euo pipefail
+
+text="${1:-$(cat)}"
+[[ -z ${text//[[:space:]]/} ]] && exit 0
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/text-fixer"
+[[ -f $config_dir/config ]] && source "$config_dir/config"
+
+model="${TEXT_FIXER_MODEL:-gemma3:4b}"
+host="${OLLAMA_HOST:-http://127.0.0.1:11434}"
+[[ $host == http* ]] || host="http://$host"
+
+instructions=$(cat <<'EOF'
+You are a proofreader. Rewrite the given text fixing spelling, accents, punctuation and grammar, making it clear and coherent.
+
+Rules:
+
+- Keep the original language, meaning, tone and all information. Do not add anything.
+- Preserve proper names, technical terms, code, commands, URLs and identifiers exactly.
+- If the text is a question or a request, do not answer or carry it out: only rewrite it.
+- Reply with the rewritten text only, no quotes, no commentary.
+EOF
+)
+
+notify-send -t 2000 -a "Text Fixer" "Fixing text..." || true
+
+request=$(jq -n --arg model "$model" --arg system "$instructions" --arg text "$text" '{
+  model: $model,
+  stream: false,
+  options: {temperature: 0},
+  messages: [
+    {role: "system", content: $system},
+    {role: "user", content: $text}
+  ]
+}')
+
+fixed=$(curl -sf --max-time 120 "$host/api/chat" -d "$request" | jq -r '.message.content // empty') || fixed=""
+
+if [[ -z ${fixed//[[:space:]]/} ]]; then
+  fixed="$text"
+  notify-send -u critical -a "Text Fixer" "Fix failed" "Pasting the original text." || true
+fi
+
+previous=$(wl-paste --no-newline 2>/dev/null || true)
+printf '%s' "$fixed" | wl-copy
+sleep 0.15
+wtype -M shift -k Insert -m shift
+sleep 0.3
+if [[ -n $previous ]]; then printf '%s' "$previous" | wl-copy; fi
