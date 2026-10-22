@@ -24,8 +24,6 @@ Rules:
 EOF
 )
 
-notify-send -t 2000 -a "Text Fixer" "Fixing text..." || true
-
 request=$(jq -n --arg model "$model" --arg system "$instructions" --arg text "$text" '{
   model: $model,
   stream: false,
